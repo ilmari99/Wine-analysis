@@ -2,6 +2,10 @@
 
 ## Viinien karakteristiikkojen vaikutus makuun?
 
+## Käytänteet
+- Luodaan lähtökohtaisesti omat kansiot henkilöittäin. Esim. koodi/Arno tai tulokset/Santeri
+- 
+
 ## Githubin käyttö
 Kopioi tämä koko kansio:  
 `git clone https://github.com/ilmari99/Late-tyokurssi.git`
