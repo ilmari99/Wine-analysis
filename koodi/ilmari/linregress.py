@@ -5,20 +5,15 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-
-def nsums(l : list):
-    sums = {}
-    for i,elem in enumerate(l):
-        for i2,elem2 in enumerate(l[i:]):
-            if elem + elem2 not in sums:
-                sums[elem + elem2] = True
-    return len(sums)
+import scipy
 
 if __name__ == "__main__":
     df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
-    df = max_norm(df)   # Norm by column max
+    #df["quality"] = df["quality"].apply(lambda x : pd.NA if ((int(x) in [5,6]) and (random.random() > 0.5)) else x)
     #df["quality"] = df["quality"].apply(lambda x : pd.NA if ((int(x) in [5,6]) and (random.random() > 0.1)) else x)
-    #df.dropna(inplace=True,axis=0)
+    df.dropna(inplace=True,axis=0)
+    df = max_norm(df)   # Norm by column max
+    df = df.astype(float)
     #plt.hist(df["quality"])
     #plt.show()
     # Create correlation matrix
@@ -31,7 +26,7 @@ if __name__ == "__main__":
     #df,trans = boxcox_df(df,cols=["quality"])
     #df,trans = boxcox_df(df)
     #df["free sulfur dioxide"]  = np.log(df["free sulfur dioxide"])
-    df = df.astype(float)
+    #df = df[(np.abs(scipy.stats.zscore(df)) < 3).all(axis=1)]
     endog = df.pop("quality")
     exog = df
     # Values to remove
@@ -43,14 +38,11 @@ if __name__ == "__main__":
     print("New correlation matrix: \n",new_corr_mat)
     exog = sm.add_constant(exog)
     exog = exog.astype(float)
+    
     lin_model = sm.WLS(endog,exog,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
     print(lin_model.summary())
     errors = lin_model.predict(exog) - endog
     #errors = errors.apply(lambda x : x**2)
     plt.scatter(endog,errors)
     plt.show()
-    
-    
-    
-    
     
