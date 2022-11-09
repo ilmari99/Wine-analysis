@@ -53,6 +53,7 @@ def boxcox_df(df : pd.DataFrame, cols = "all", save_figs=False) -> Tuple[pd.Data
             plt.savefig(f"transformed-distribution-{col}")
             plt.close()
         transformations.append((col,trans))
+    new_df = new_df.astype(float)
     plt.cla()
     plt.clf()
     return new_df,transformations
