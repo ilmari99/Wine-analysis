@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+from ModelSet import ModelSet
+import statsmodels.api as sm
+import pandas as pd
 
 def plot_models(df,y_header="quality"):
     # Create graphs for the normalized original variables
