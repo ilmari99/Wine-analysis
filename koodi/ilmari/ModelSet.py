@@ -2,10 +2,10 @@ from matplotlib import style
 import pandas as pd
 import sys, os
 import numpy as np
-from utils import concat_clean_separate,plot_model
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
+from handle import concat_clean_separate
 
 class ModelSet:
     """A class that contains a dictionary of models. The dictionary is keyed by the
