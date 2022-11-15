@@ -6,7 +6,9 @@ import numpy as np
 import random
 import scipy
 import tensorflow as tf
+import sklearn
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
 
 from handle import max_norm
 def indices_to_one_hot(data, nb_classes):
@@ -45,6 +47,7 @@ def test_model(model,x_test,y_test):
     fig,ax = plt.subplots()
     #print(errs)
     #ax.scatter(y_test,errs)
+    ax.set_title(f"Residuals")
     ax.hist(errs)
     plt.show()
 
@@ -104,9 +107,14 @@ def red_wine_model(xy_splits,train=True):
     return model
     
 if __name__ == "__main__":
-    df = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
-    xy_split = get_winedata_split(df)
-    rw_model = red_wine_model(xy_split,train=True)
-    test_model(rw_model,np.array(xy_split[1]),np.array(xy_split[3]))
+    df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
+    dec_tree = RandomForestRegressor(n_estimators=32,random_state=42,verbose=0,n_jobs=8)
+    xy_split = get_winedata_split(df,rm_outliers=False)
+
+    dec_tree.fit(np.array(xy_split[0]),np.array(xy_split[2]))
+    test_model(dec_tree, np.array(xy_split[1]),np.array(xy_split[3]))
+    #xy_split = get_winedata_split(df)
+    #rw_model = red_wine_model(xy_split,train=True)
+    #test_model(rw_model,np.array(xy_split[1]),np.array(xy_split[3]))
     
     
