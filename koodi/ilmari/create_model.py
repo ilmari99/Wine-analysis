@@ -9,6 +9,7 @@ import tensorflow as tf
 import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
+from handle import boxcox_df
 
 from handle import max_norm
 def indices_to_one_hot(data, nb_classes):
@@ -20,13 +21,16 @@ def indices_to_one_hot(data, nb_classes):
         arr[i,int(targets[i])] = 1
     return arr
 
-def get_winedata_split(df,rm_outliers=False,onehot=True):
+def get_winedata_split(df,rm_outliers=False):
     # Read and handle data
     if rm_outliers:
         df = df[(np.abs(scipy.stats.zscore(df)) < 3).all(axis=1)]
+    if boxcox:
+        cols = list(df.columns)
+        cols.remove("quality")
+        df,trans = boxcox_df(df,cols=cols)
     endog = df.pop("quality")
-    if onehot:
-        endog = pd.DataFrame(indices_to_one_hot(endog,10))
+    endog = pd.DataFrame(indices_to_one_hot(endog,10))
     exog = max_norm(df)
     return train_test_split(exog,endog,test_size=0.25,random_state=42)
 
@@ -37,18 +41,25 @@ def test_model(model,x_test,y_test):
     y_test = y_test.idxmax(axis=1)
     print(preds)
     print(y_test)
-    print("Neural network pedictions",Counter(preds).items())
-    print("Actual values",Counter(y_test).items())
+    pred_count = Counter(preds.to_numpy().flatten())
+    obs_count = Counter(y_test.to_numpy().flatten())
+    print("Neural network predictions",pred_count.items())
+    print("Actual values",obs_count.items())
     count = 0
     for obs, pred in zip(y_test,preds):
-        if obs == pred:
+        if int(obs) == int(pred):
             count += 1
     print("Accuracy of model: ", round(count/len(preds),3))
     errs = preds - y_test
     fig,ax = plt.subplots()
+    bins = list(range(9))
+    ax.bar(list(obs_count.keys()),list(obs_count.values()),label="Observations")
+    ax.bar(pred_count.keys(),pred_count.values(),label="Predictions")
     #print(errs)
     #ax.scatter(y_test,errs)
-    ax.set_title(f"Residuals")
+    #ax.set_title(f"Residuals")
+    ax.legend()
+    fig,ax = plt.subplots()
     ax.hist(errs)
     plt.show()
     
@@ -124,9 +135,10 @@ def red_wine_forest_regress(exog,endog):
     
 if __name__ == "__main__":
     df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
-    xy_split = get_winedata_split(df,onehot=False)
-    #dec_tree = red_wine_forest_regress(xy_split[0],xy_split[2])
-    dec_tree = red_wine_model_regress(xy_split)
+    dec_tree = RandomForestRegressor(n_estimators=32,random_state=42,verbose=0,n_jobs=8)
+    xy_split = get_winedata_split(df,rm_outliers=False)
+
+    dec_tree.fit(np.array(xy_split[0]),np.array(xy_split[2]))
     test_model(dec_tree, np.array(xy_split[1]),np.array(xy_split[3]))
     #xy_split = get_winedata_split(df)
     #rw_model = red_wine_model(xy_split,train=True)
