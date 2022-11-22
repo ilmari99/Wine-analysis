@@ -5,7 +5,7 @@ import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+#import seaborn as sns
 import random
 import scipy
 
@@ -39,9 +39,7 @@ def test_model(model,x_test,y_test,norm=True):
     plt.show()
 
 if __name__ == "__main__":
-    df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
-    # Randomly drop samples where quality is 5 or 6
-    #df["quality"] = df["quality"].apply(lambda x : pd.NA if ((int(x) in [5,6]) and (random.random() > 0.1)) else x)
+    df = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
     df.dropna(inplace=True,axis=0)
     #df = multip_rows(df,ntimes=3,mask_cond=lambda df : df["quality"].isin([1,2,3,7,8,9]))
     #df = multip_rows(df,ntimes=3)
@@ -52,11 +50,11 @@ if __name__ == "__main__":
     #plt.show()
     # Create correlation matrix
     corr_mat = df.corr()
-    sns.heatmap(corr_mat,
-                xticklabels=corr_mat.columns.values,
-                yticklabels=corr_mat.columns.values,
-                annot=True
-                )
+    #sns.heatmap(corr_mat,
+    #            xticklabels=corr_mat.columns.values,
+    #            yticklabels=corr_mat.columns.values,
+    #            annot=True
+    #            )
     plt.show()
     #pp = sns.pairplot(df,hue="quality")
     #plt.matshow(corr_mat)
