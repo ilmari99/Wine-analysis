@@ -5,7 +5,7 @@ import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
-#import seaborn as sns
+import seaborn as sns
 import random
 import scipy
 
@@ -37,7 +37,30 @@ def test_model(model,x_test,y_test,norm=True):
     #ax.scatter(y_test,errs)
     ax.hist(errs)
     plt.show()
+    
+def red_wine_linmodel(x_train, y_train, pops = "default"):
+    if pops == "default":
+        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+    [x_train.pop(k) for k in pops]
+    x_train = sm.add_constant(x_train)
+    x_train = x_train.astype(float)
+    lin_model = sm.WLS(y_train,x_train,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
+    print(lin_model.summary())
+    return lin_model,pops
 
+def white_wine_linmodel(x_train, y_train, pops = "default"):
+    if pops == "default":
+        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+    [x_train.pop(k) for k in pops]
+    x_train = sm.add_constant(x_train)
+    x_train = x_train.astype(float)
+    lin_model = sm.WLS(y_train,x_train,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
+    print(lin_model.summary())
+    return lin_model,pops
+    
+    
+    
+    
 if __name__ == "__main__":
     df = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
     df.dropna(inplace=True,axis=0)
@@ -81,12 +104,4 @@ if __name__ == "__main__":
     lin_model = sm.WLS(endog,exog,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
     print(lin_model.summary())
     test_model(lin_model,exog,endog)
-    exit()
-    errors = round(10*(lin_model.predict(exog) - endog))
-    plt.hist(errors)
-    plt.show()
-    print(errors)
-    #errors = errors.apply(lambda x : x**2)
-    plt.scatter(10*endog,errors)
-    plt.show()
     
