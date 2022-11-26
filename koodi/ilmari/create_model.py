@@ -4,25 +4,19 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import seaborn as sns
 import scipy
 import tensorflow as tf
 import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
+from sklearn.model_selection import RandomizedSearchCV
 from handle import boxcox_df
 import linregress
+from show import print_model,accuracy_info
+from handle import max_norm, make_smogn,add_noise,add_rows_red_wine_regress,add_rows_white_wine_regress,indices_to_one_hot
 
-from handle import max_norm
-def indices_to_one_hot(data, nb_classes):
-    """Convert an iterable of indices to one-hot encoded labels."""
-    targets = np.array(data,dtype=int)
-    arr = np.zeros((len(targets),nb_classes),dtype=int)
-    print(targets)
-    for i,_ in enumerate(arr):
-        arr[i,int(targets[i])] = 1
-    return arr
-
-def get_winedata_split(df,rm_outliers=False,boxcox=False,norm=False,add_rares = True,onehot=True,wine="red"):
+def get_winedata_split(df,rm_outliers=False,boxcox=False,norm=False,add_rares = True,onehot=True,wine="red",noise=False,smogn_=False):
     # Read and handle data
     if rm_outliers:
         df = df[(np.abs(scipy.stats.zscore(df)) < 3).all(axis=1)]
@@ -42,29 +36,50 @@ def get_winedata_split(df,rm_outliers=False,boxcox=False,norm=False,add_rares = 
         exog = df
     x_train,x_test,y_train,y_test = train_test_split(exog,endog,test_size=0.25,random_state=42)
     if add_rares:
-        assert not boxcox, "Cannot add rares if the data is transformed with box cox"
+        assert not any([boxcox,smogn_]), "Cannot add rares if the data is transformed with box cox or smogn is used"
         if wine == "red":
             x_train,y_train = add_rows_red_wine_regress(x_train, y_train,normed=norm)
         elif wine == "white":
             x_train,y_train = add_rows_white_wine_regress(x_train, y_train,normed=norm)
+    if noise:
+        print("Sizes before adding noise: ",y_train.shape, y_test.shape)
+        y_train,y_test = add_noise(y_train,y_test,noise_division = 80)
+        print("Sizes after adding noise: ",y_train.shape, y_test.shape)
+    if smogn_:
+        if not noise:
+            Warning("Should add noise for smogn algorithm")
+        assert not any([add_rares,rm_outliers]), "Not supported combination of arguments"
+        x_train, y_train = make_smogn(x_train,y_train,y_header="quality",smoter_kwargs={})
+    
     if onehot:
         y_train = pd.DataFrame(indices_to_one_hot(y_train,10))
         y_test = pd.DataFrame(indices_to_one_hot(y_test,10))
     return x_train,x_test,y_train,y_test
 
+
 def test_model(model,x_test,y_test,wine="red"):
+    mul = 8 if wine=="red" else 9
     preds = pd.DataFrame(model.predict(x_test))
     y_test = pd.DataFrame(y_test)
+    
     fig,ax = plt.subplots()
-    errs = preds-y_test
+    errs = mul*(preds-y_test)
     print(f"Mean absolute error of model: {np.mean(errs,axis=0)[0]}")
     ax.scatter(y_test,errs)
-    ax.set_title("Residual scatter plot: prediction - observed")
+    ax.set_title("Scatter plot of errors: y_obs vs y_pred")
+    ax.set_xlabel("Observed value")
+    ax.set_ylabel("Predicted value")
+    
+    fig, ax = plt.subplots()
+    ax.hist(errs)
+    ax.set_title("Histogram of errors (y_pred - y_obs)")
+    ax.set_xlabel("Error")
+    ax.set_ylabel("Frequency")
+    
     if len(np.shape(np.array(y_test))) > 1 and 1 not in np.shape(np.array(y_test)):
         preds = preds.idxmax(axis=1)
         y_test = y_test.idxmax(axis=1)
     else:
-        mul = 8 if wine=="red" else 9
         preds = pd.Series(preds.apply(lambda x : round(mul*x)).to_numpy().flatten())
         y_test = pd.Series(y_test.apply(lambda x : round(mul*x)).to_numpy().flatten())
     #print(preds)
@@ -73,54 +88,23 @@ def test_model(model,x_test,y_test,wine="red"):
     obs_count = Counter(y_test.to_numpy().flatten())
     print("Neural network predictions",pred_count.items())
     print("Actual values",obs_count.items())
-    count = 0
-    for obs, pred in zip(y_test,preds):
-        if int(obs) == int(pred):
-            count += 1
-    print("Accuracy of model: ", round(count/len(preds),3))
+    accuracy_info(y_test,preds)
     errs = preds - y_test
+    
     fig,ax = plt.subplots()
     ax.bar(list(obs_count.keys()),list(obs_count.values()),label="Observations",alpha=0.75)
     ax.bar(pred_count.keys(),pred_count.values(),label="Predictions",alpha=0.75)
     ax.set_title("Observations and predictions (rounded to the nearest integer) histogram")
+    ax.set_xlabel("Observed/predicted value")
+    ax.set_ylabel("Frequency")
     ax.legend()
+    
     fig,ax = plt.subplots()
     ax.hist(errs)
-    ax.set_title("Histogram of errors")
+    ax.set_title("Histogram of prediction errors (round(y_pred) - round(y_obs))")
+    ax.set_xlabel("Prediction error (int)")
+    ax.set_ylabel("Frequency")
     plt.show()
-    
-def multip_rows(df,ntimes=3,mask_cond=None):
-    if mask_cond is None:
-        mask_cond = lambda df : (np.abs(scipy.stats.zscore(df)) >= 3).any(axis=1)
-    weirds = df[mask_cond(df)]
-    print(f"Found {len(weirds)} weird rows.")
-    weirds = pd.concat([weirds.copy() for _ in range(ntimes)])
-    df = pd.concat([df,weirds])
-    print(f"Added {len(weirds)} rows.")
-    return df
-
-def add_rows_white_wine_regress(x_train, y_train, normed=True):
-    # multiple values in train set
-    train = pd.concat([x_train,y_train],axis=1)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([3/9 if normed else 3]),ntimes=6) #13
-    #train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([7/9]),ntimes=4)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([1 if normed else 9]),ntimes=10)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([8/9 if normed else 8]),ntimes=2)
-    y_train = train.pop("quality")
-    x_train = train
-    return x_train, y_train
-    
-    
-def add_rows_red_wine_regress(x_train, y_train,normed=True):
-    # multiple values in train set
-    train = pd.concat([x_train,y_train],axis=1)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([3/8 if normed else 3]),ntimes=8)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([4/8 if normed else 4]),ntimes=2)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([1 if normed else 8]),ntimes=7)
-    train = multip_rows(train,mask_cond=lambda df : df["quality"].isin([7/8 if normed else 7]),ntimes=1)
-    y_train = train.pop("quality")
-    x_train = train
-    return x_train, y_train
 
 def red_wine_model_regress(xy_splits,train=True):
     # Looks like we shouldn't get rid of the outliers, when creating a neural network.
@@ -157,7 +141,7 @@ def red_wine_model_regress(xy_splits,train=True):
         print("Num of GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
         hist = model.fit(
             x_train, y_train,
-            epochs=20,
+            epochs=80,
             verbose=2,
             validation_data=(x_test,y_test),
             batch_size=128,
@@ -183,7 +167,7 @@ def white_wine_model_regress(xy_splits,train=True):
         tf.keras.layers.Dense(45,activation="linear"),
         tf.keras.layers.Dense(225,activation="relu"),
         tf.keras.layers.Dense(39,activation="tanh"),
-        tf.keras.layers.Dense(512,activation="linear"),
+        tf.keras.layers.Dense(512,activation="relu"),
         tf.keras.layers.Dense(1,"sigmoid"),
         ]
     )
@@ -205,31 +189,55 @@ def white_wine_model_regress(xy_splits,train=True):
         model.load_weights("./koodi/ilmari/white-wine-regress-model.h5")
     return model
 
-def red_wine_forest_regress(exog,endog):
-    dec_tree = RandomForestRegressor(n_estimators=32,random_state=42,verbose=0,n_jobs=8,)
+def white_wine_forest_regress(exog,endog):
+    dec_tree = RandomForestRegressor(n_estimators=100,
+                                     random_state=42,
+                                     verbose=0,
+                                     n_jobs=8,)
     dec_tree.fit(np.array(exog),np.array(endog))
     return dec_tree
 
-def white_wine_forest_regress(exog,endog):
-    dec_tree = RandomForestRegressor(n_estimators=64,random_state=42,verbose=0,n_jobs=8,)
-    dec_tree.fit(np.array(exog),np.array(endog))
-    return dec_tree
+def red_wine_forest_regress(exog,endog):
+    forest = RandomForestRegressor(n_estimators=32,
+                                     random_state=42,
+                                     verbose=0,
+                                     n_jobs=8,
+                                     min_samples_split=2,
+                                     min_samples_leaf=1,
+                                     
+                                     )
+    tries = {
+        "n_estimators" : [32,50,64,70,90,128,264,300,400,512,1024],
+        "max_features" : [1.0,"sqrt"],
+        "max_depth" : [2,5,7,9,12,14,16],
+        "min_samples_split" : [2,5,10],
+        "min_samples_leaf" : [1,2,4],
+        "bootstrap" : [True, False],
+    }
+    #print(sklearn.metrics.get_scorer_names())
+    forest = RandomizedSearchCV(forest,param_distributions=tries,n_iter=100,cv=3,random_state=42,n_jobs=-1,scoring="neg_mean_squared_error")
+    
+    #forest = RandomForestRegressor(n_estimators=256,random_state=42,verbose=0,n_jobs=8,)
+    forest.fit(np.array(exog),np.array(endog).flatten())
+    print(forest.get_params())
+    return forest
 
 def test_whitewine_regress_model(model_type="forest"):
     # Test on full dataset
     df = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
     
     if model_type == "forest":
-        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white")
+        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=False,smogn_ = False)
         model = white_wine_forest_regress(np.array(xy_split[0]),np.array(xy_split[2]))
         
     elif model_type == "neural":
-        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="white")
-        model = white_wine_model_regress(xy_split,train=False)
+        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="white",noise=False,smogn_ = False)
+        model = white_wine_model_regress(xy_split,train=True)
+        print_model(model)
         
     elif model_type == "linear":
-        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white")
-        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=False,smogn_ = False)
+        pops = ["residual sugar","total sulfur dioxide","citric acid","pH","density",]
         model,pops = linregress.white_wine_linmodel(xy_split[0],xy_split[2], pops = pops)
         xy_split = list(xy_split)
         xy_split[1] = sm.add_constant(xy_split[1]).astype(float)
@@ -240,20 +248,21 @@ def test_whitewine_regress_model(model_type="forest"):
 
 
 def test_redwine_regress_model(model_type = "forest"):
-    df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
     
+    df = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
     if model_type == "forest":
         # Better results with boxcox = True and rm_outliers = True, but incorrect predictions for poor or good wine
-        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="red")
+        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=False,smogn_ = False)
         model = red_wine_forest_regress(np.array(xy_split[0]),np.array(xy_split[2]))
         
     elif model_type == "neural":
         # Sometimes much higher results with boxcox = True, but again, heavily skewed toward the common range of values
-        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="red")
-        model = red_wine_model_regress(xy_split,train=True)
+        xy_split = get_winedata_split(df,boxcox=False,rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="red",noise=False,smogn_ = False)
+        model = red_wine_model_regress(xy_split,train=False)
+        print_model(model)
         
     elif model_type == "linear":
-        xy_split = get_winedata_split(df,boxcox=True,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red")
+        xy_split = get_winedata_split(df,boxcox=True,rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=False,smogn_ = False)
         pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
         model,pops = linregress.red_wine_linmodel(xy_split[0],xy_split[2], pops = pops)
         xy_split = list(xy_split)
@@ -264,6 +273,6 @@ def test_redwine_regress_model(model_type = "forest"):
 
     
 if __name__ == "__main__":
-    test_whitewine_regress_model(model_type="neural")
+    test_redwine_regress_model(model_type="neural")
     
     

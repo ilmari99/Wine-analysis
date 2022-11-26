@@ -44,7 +44,7 @@ def red_wine_linmodel(x_train, y_train, pops = "default"):
     [x_train.pop(k) for k in pops]
     x_train = sm.add_constant(x_train)
     x_train = x_train.astype(float)
-    lin_model = sm.WLS(y_train,x_train,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
+    lin_model = sm.OLS(y_train,x_train,hasconst=True).fit()
     print(lin_model.summary())
     return lin_model,pops
 
@@ -54,7 +54,7 @@ def white_wine_linmodel(x_train, y_train, pops = "default"):
     [x_train.pop(k) for k in pops]
     x_train = sm.add_constant(x_train)
     x_train = x_train.astype(float)
-    lin_model = sm.WLS(y_train,x_train,hasconst=True,).fit(cov_type="HAC",cov_kwds={"use_correction" : True, "maxlags":1})
+    lin_model = sm.WLS(y_train,x_train,hasconst=True,).fit()
     print(lin_model.summary())
     return lin_model,pops
     
