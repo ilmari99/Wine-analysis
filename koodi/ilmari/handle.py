@@ -6,6 +6,7 @@ import smogn
 import random
 import numpy as np
 import scipy
+from sklearn.preprocessing import StandardScaler
 
 def make_smogn(train : pd.DataFrame ,y_train : pd.Series = None,y_header = "",smoter_kwargs = {}):
     # If there is no y data specified
@@ -37,6 +38,7 @@ def make_smogn(train : pd.DataFrame ,y_train : pd.Series = None,y_header = "",sm
     smoter_kwargs.setdefault("k",256)
     smoter_kwargs.setdefault("samp_method","balance")
     smoter_kwargs.setdefault("rel_thres",0.7)
+    print(smoter_kwargs)
     train = smogn.smoter(data=train, y=y_header,**smoter_kwargs,)
     return train, train.pop(y_header)
 
@@ -117,6 +119,13 @@ def add_rows_red_wine_regress(x_train, y_train,normed=True):
     y_train = train.pop("quality")
     x_train = train
     return x_train, y_train
+
+def standard_transformation(df):
+    scaler = StandardScaler()
+    cols = list(df.columns)
+    scaler.fit_transform(df)
+    df = pd.DataFrame(scaler.transform(df),columns=cols)
+    return df
 
 def boxcox_df(df : pd.DataFrame, cols = "all", save_figs=False) -> Tuple[pd.DataFrame,List[Tuple[str,float]]]:
     new_df = df.astype(float)
