@@ -6,12 +6,13 @@ import scipy
 import numpy as np
 from typing import Tuple,List
 import seaborn as sb
-from handle import standard_transformation,make_smogn,add_noise
+from linregress import white_wine_linmodel, red_wine_linmodel
+from handle import standard_transformation,make_smogn,add_noise,max_norm
 
-#RW_DATA = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
-WW_DATA = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
+RW_DATA = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
+#WW_DATA = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
 RW_POPS = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
-WW_POPS = ["density","total sulfur dioxide","residual sugar","fixed acidity","chlorides"]
+WW_POPS = ["residual sugar","total sulfur dioxide","citric acid","pH","density",]
 
 def create_correlation_heatmap(df,show=True,wine="red"):
     #pops = ["fixed acidity","density"]
@@ -30,9 +31,9 @@ def create_pair_plot(df,show = True, save="", categ_quality = False, wine = "red
     if categ_quality:
         df["quality2"] = df["quality"].apply(lambda x : (x > 4) + (x >  6))
         print(df.head())
-    if pops == "red":
+    if wine == "red":
         pops = RW_POPS#["fixed acidity","citric acid","density"]#["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
-    elif pops == "white":
+    elif wine == "white":
         pops = WW_POPS
     [df.pop(k) for k in pops]
     pg = sb.pairplot(df,hue="quality2",palette=sb.color_palette("tab10",3),**pairplot_kwargs)
@@ -66,9 +67,23 @@ def apply_smogn(df):
     print(df)
     print(df.describe())
     return df
+
+def fit_linmodel(df,wine="red",pops = "default"):
+    if wine == "red" and not isinstance(pops,(list,tuple)):
+        pops = RW_POPS
+    elif wine == "white" and not isinstance(pops,(list,tuple)):
+        pops = WW_POPS
+    exog = df
+    endog = df.pop("quality")
+    model = red_wine_linmodel(exog,endog,pops = pops)
+    print(exog.corr())
+    return model
     
 if __name__ == "__main__":
     #create_correlation_heatmap(WW_DATA)
     #WW_DATA = apply_smogn(WW_DATA)
-    create_correlation_heatmap(WW_DATA,wine="white")
-    #create_pair_plot(WW_DATA,categ_quality=True,save="White-wine-smogn-pairplot.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
+    #create_correlation_heatmap(WW_DATA,wine="white")
+    #create_pair_plot(RW_DATA,wine="red",categ_quality=True,save="red-wine-pairplot.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
+    #RW_DATA = max_norm(RW_DATA,inplace=False)
+    #print(WW_DATA.describe())
+    fit_linmodel(RW_DATA,wine="red",pops="default")
