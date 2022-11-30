@@ -53,6 +53,7 @@ def white_wine_linmodel(x_train, y_train, pops = "default"):
     if pops == "default":
         #pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
         pops = ["density","total sulfur dioxide","residual sugar","fixed acidity","chlorides"]
+        #["residual sugar","total sulfur dioxide","citric acid","pH","density",]
     [x_train.pop(k) for k in pops]
     x_train = sm.add_constant(x_train)
     x_train = x_train.astype(float)
