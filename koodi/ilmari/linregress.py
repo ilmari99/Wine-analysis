@@ -40,7 +40,8 @@ def test_model(model,x_test,y_test,norm=True):
     
 def red_wine_linmodel(x_train, y_train, pops = "default"):
     if pops == "default":
-        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+        #pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+        pops = ["fixed acidity","citric acid","density","total sulfur dioxide", "chlorides"]
     [x_train.pop(k) for k in pops]
     x_train = sm.add_constant(x_train)
     x_train = x_train.astype(float)
@@ -50,7 +51,8 @@ def red_wine_linmodel(x_train, y_train, pops = "default"):
 
 def white_wine_linmodel(x_train, y_train, pops = "default"):
     if pops == "default":
-        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+        #pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+        pops = ["density","total sulfur dioxide","residual sugar","fixed acidity","chlorides"]
     [x_train.pop(k) for k in pops]
     x_train = sm.add_constant(x_train)
     x_train = x_train.astype(float)

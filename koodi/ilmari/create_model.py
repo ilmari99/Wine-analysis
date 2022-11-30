@@ -353,6 +353,6 @@ def test_redwine_regress_model(model_type = "forest",score="accuracy"):
 
     
 if __name__ == "__main__":
-    test_whitewine_regress_model(model_type="forest",score="f1")
+    test_whitewine_regress_model(model_type="linear",score="accuracy")
     
     
