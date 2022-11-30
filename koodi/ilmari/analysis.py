@@ -10,20 +10,30 @@ from handle import standard_transformation,make_smogn,add_noise
 
 #RW_DATA = pd.read_csv("./viinidata/winequality-red.csv",sep=";")
 WW_DATA = pd.read_csv("./viinidata/winequality-white.csv",sep=";")
+RW_POPS = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+WW_POPS = ["density","total sulfur dioxide","residual sugar","fixed acidity","chlorides"]
 
-def create_correlation_heatmap(df,show=True):
+def create_correlation_heatmap(df,show=True,wine="red"):
+    #pops = ["fixed acidity","density"]
+    if wine == "red":
+        pops = RW_POPS
+    if wine == "white":
+        pops = WW_POPS
+    [df.pop(k) for k in pops]
     ax = sb.heatmap(100*df.corr(),annot=True,fmt=".0f",)
     ax.set_title("White wine correlation plot (%)")
     plt.xticks(rotation = 45)
     if show:
         plt.show()
 
-def create_pair_plot(df,show = True, save="", categ_quality = False, pops = "default", pairplot_kwargs={}):
+def create_pair_plot(df,show = True, save="", categ_quality = False, wine = "red", pairplot_kwargs={}):
     if categ_quality:
         df["quality2"] = df["quality"].apply(lambda x : (x > 4) + (x >  6))
         print(df.head())
-    if pops == "default":
-        pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+    if pops == "red":
+        pops = RW_POPS#["fixed acidity","citric acid","density"]#["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
+    elif pops == "white":
+        pops = WW_POPS
     [df.pop(k) for k in pops]
     pg = sb.pairplot(df,hue="quality2",palette=sb.color_palette("tab10",3),**pairplot_kwargs)
     #pg = sb.PairGrid(df,hue="quality2")
@@ -59,6 +69,6 @@ def apply_smogn(df):
     
 if __name__ == "__main__":
     #create_correlation_heatmap(WW_DATA)
-    WW_DATA = apply_smogn(WW_DATA)
-    
-    create_pair_plot(WW_DATA,categ_quality=True,save="White-wine-smogn-pairplot.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
+    #WW_DATA = apply_smogn(WW_DATA)
+    create_correlation_heatmap(WW_DATA,wine="white")
+    #create_pair_plot(WW_DATA,categ_quality=True,save="White-wine-smogn-pairplot.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
