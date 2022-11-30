@@ -42,15 +42,16 @@ def make_smogn(train : pd.DataFrame ,y_train : pd.Series = None,y_header = "",sm
     train = smogn.smoter(data=train, y=y_header,**smoter_kwargs,)
     return train, train.pop(y_header)
 
-def add_noise(y_train,y_test, noise_division = 20):
+def add_noise(y_train,y_test=None, noise_division = 20):
     def func(x):
         pm = 1 if random.random() > 0.5 and x < 1 else -1
         noise = random.random() / noise_division
         return x + pm*noise
     y_train = pd.DataFrame(y_train)
-    y_test = pd.DataFrame(y_test)
     y_train = y_train.applymap(func)
-    y_test = y_test.applymap(func)
+    if y_test is not None:
+        y_test = pd.DataFrame(y_test)
+        y_test = y_test.applymap(func)
     return y_train, y_test
 
 
