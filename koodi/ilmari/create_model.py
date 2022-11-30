@@ -81,6 +81,7 @@ def test_model(model,x_test,y_test,wine="red"):
     
     fig,ax = plt.subplots()
     errs = mul*(preds-y_test)
+    print(errs)
     print(f"Mean absolute error of model: {np.mean(errs,axis=0)[0]}")
     ax.scatter(y_test,errs)
     ax.set_title("Scatter plot of errors: y_obs vs y_pred")
@@ -106,7 +107,11 @@ def test_model(model,x_test,y_test,wine="red"):
     conf_mat = confusion_matrix(y_test,preds,labels=list(range(1,11)))
     f1_sc = f1_score(y_test,preds,average="macro")
     print("F1 score of model: ",f1_sc)
-    print("Confusion matrix: \n", conf_mat)
+    conf_mat = pd.DataFrame(conf_mat,columns=list(range(1,11)),index=list(range(1,11)))
+    sns.heatmap(conf_mat,annot=True,fmt=".0f",)
+    plt.xlabel("Actual values")
+    plt.ylabel("Predicted values")
+    plt.title("Confusion matrix")
     print("Neural network predictions",pred_count.items())
     print("Actual values",obs_count.items())
     accuracy_info(y_test,preds)
@@ -219,7 +224,7 @@ def white_wine_forest_regress(exog,endog):
     return dec_tree
 
 def red_wine_forest_regress(exog,endog):
-    forest = RandomForestRegressor(n_estimators=32,
+    forest = RandomForestRegressor(n_estimators=100,
                                      random_state=42,
                                      verbose=0,
                                      n_jobs=8,
@@ -236,9 +241,9 @@ def red_wine_forest_regress(exog,endog):
         "bootstrap" : [True, False],
     }
     #print(sklearn.metrics.get_scorer_names())
-    #forest = RandomizedSearchCV(forest,param_distributions=tries,n_iter=100,cv=3,random_state=42,n_jobs=-1,scoring="neg_mean_squared_error")
+    #forest = RandomizedSearchCV(forest,param_distributions=tries,n_iter=100,cv=3,random_state=42,n_jobs=-1,scoring="neg_mean_squared_log_error")
     
-    forest = RandomForestRegressor(n_estimators=256,random_state=42,verbose=0,n_jobs=8,)
+    #forest = RandomForestRegressor(n_estimators=256,random_state=42,verbose=0,n_jobs=8,)
     forest.fit(np.array(exog),np.array(endog).flatten())
     print(forest.get_params())
     return forest
@@ -269,9 +274,9 @@ def test_whitewine_regress_model(model_type="forest",score="accuracy"):
             xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=0,smogn_ = False)
         elif score == "f1":
             smoter_kwargs = {
-                "k":256,
-                "samp_method":"extreme",
-                "rel_thres":0.5
+                "k":128,
+                "samp_method":"balance",
+                "rel_thres":0.7
             }
             # Accuracy 54, F1 32
             xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=80,smogn_ = True,smoter_kwargs=smoter_kwargs)
@@ -282,13 +287,14 @@ def test_whitewine_regress_model(model_type="forest",score="accuracy"):
         
     elif model_type == "linear":
         if score == "accuracy":
-            # Accuracy 51, f1 27.1
-            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="white",noise=0,smogn_ = False)
+            # Accuracy 51, f1 23.1
+            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=0,smogn_ = False)
         elif score == "f1":
             # accuracy 44.8, f1 28.4
-            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="white",noise=80,smogn_ = True)
+            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="white",noise=0,smogn_ = False)
         pops = ["residual sugar","total sulfur dioxide","citric acid","pH","density",]
-        pops = []
+        #pops = []
+        #pops = "default"
         model,pops = linregress.white_wine_linmodel(xy_split[0],xy_split[2], pops = pops)
         xy_split = list(xy_split)
         xy_split[1] = sm.add_constant(xy_split[1]).astype(float)
@@ -307,41 +313,41 @@ def test_redwine_regress_model(model_type = "forest",score="accuracy"):
             xy_split = get_winedata_split(df,transform="boxcox",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
         elif score == "f1":
             # Accuracy 64, f1-score 35.8
-            smoter_kwargs = {}
-            #    "k":256,
-            #    "samp_method":"extreme",
-            #    "rel_thres":0.5
-            #}
-            xy_split = get_winedata_split(df,transform="",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=80,smogn_ = True,smoter_kwargs=smoter_kwargs)
+            smoter_kwargs = {
+                "k":256,
+                "samp_method":"balance",
+                "rel_thres":0.7
+            }
+            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="red",noise=0,smogn_ = False,smoter_kwargs=smoter_kwargs)
         model = red_wine_forest_regress(np.array(xy_split[0]),np.array(xy_split[2]))
         
     elif model_type == "neural":
         if score == "accuracy":
             # accuracy 59-63, f1 30-35
-            xy_split = get_winedata_split(df,transform="boxcox",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
+            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
         elif score == "f1":
             # accuracy 59-63, f1 30-35
             smoter_kwargs = {
-                "k":128,
+                "k":256,
                 "samp_method":"extreme",
-                "rel_thres":0.5
+                "rel_thres":0.4
             }
-            xy_split = get_winedata_split(df,transform="boxcox",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
+            xy_split = get_winedata_split(df,transform="",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=80,smogn_ = True,smoter_kwargs=smoter_kwargs)
         model = red_wine_model_regress(xy_split,train=True)
         print_model(model)
         
     elif model_type == "linear":
         if score == "accuracy":
             # Accuracy 62, f1 score 27.5
-            xy_split = get_winedata_split(df,transform="boxcox",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
+            xy_split = get_winedata_split(df,transform="",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=0,smogn_ = False)
         elif score == "f1":
             # accuracy 54, f1 30
             smoter_kwargs = {
-                "k":256,
-                "samp_method":"balance",
-                "rel_thres":0.5
+                "k":264,
+                "samp_method":"extreme",
+                "rel_thres":0.4
             }
-            xy_split = get_winedata_split(df,transform="",rm_outliers=False,norm=True,add_rares=True,onehot=False,wine="red",noise=0,smogn_ = False,smoter_kwargs=smoter_kwargs)
+            xy_split = get_winedata_split(df,transform="standard",rm_outliers=False,norm=True,add_rares=False,onehot=False,wine="red",noise=80,smogn_ = True,smoter_kwargs=smoter_kwargs)
         pops = ["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
         print(xy_split[0],xy_split[2])
         model,pops = linregress.red_wine_linmodel(xy_split[0],xy_split[2], pops = pops)
@@ -353,6 +359,6 @@ def test_redwine_regress_model(model_type = "forest",score="accuracy"):
 
     
 if __name__ == "__main__":
-    test_whitewine_regress_model(model_type="linear",score="accuracy")
+    test_redwine_regress_model(model_type="linear",score="accuracy")
     
     
