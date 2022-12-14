@@ -11,7 +11,7 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.metrics import confusion_matrix, f1_score, cohen_kappa_score
 from handle import boxcox_df
 import linregress
 from show import print_model,accuracy_info
@@ -115,6 +115,7 @@ def test_model(model,x_test,y_test,wine="red"):
     print("Neural network predictions",pred_count.items())
     print("Actual values",obs_count.items())
     accuracy_info(y_test,preds)
+    print(f"Kappa: ", cohen_kappa_score(y_test, preds))
     errs = preds - y_test
     
     fig,ax = plt.subplots()
@@ -359,6 +360,6 @@ def test_redwine_regress_model(model_type = "forest",score="accuracy"):
 
     
 if __name__ == "__main__":
-    test_redwine_regress_model(model_type="linear",score="accuracy")
+    test_redwine_regress_model(model_type="neural",score="accuracy")
     
     

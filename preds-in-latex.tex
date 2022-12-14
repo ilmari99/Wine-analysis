@@ -1,0 +1,18 @@
+\begin{tabular}{llllrrr}
+\toprule
+ Wine &               Model type & Oversampling & Transformation &  Mean Absolute Error &  Accuracy (\%) &  F1 score (macro) \\
+\midrule
+  Red &                   Linear &          NaN &         Boxcox &              -0.0300 &         62.00 &             0.275 \\
+  Red &                   Linear &        Smogn &       Standard &               0.2200 &         53.50 &             0.311 \\
+  Red &               Neural Net &          NaN &       Standard &              -0.0600 &         62.75 &             0.312 \\
+  Red &               Neural Net & Manual rares &       Standard &               0.0550 &         60.75 &             0.370 \\
+  Red & Random Forest Regression &          NaN &         Boxcox &               0.0098 &         69.20 &             0.330 \\
+  Red & Random Forest Regression & Manual rares &            NaN &               0.0300 &         67.00 &             0.351 \\
+White &                   Linear &          NaN &       Standard &              -0.0200 &         51.10 &             0.230 \\
+White &                   Linear &        Smogn &       Standard &              -0.1800 &         44.10 &             0.280 \\
+White &               Neural Net &          NaN &       Standard &              -0.0500 &         56.90 &             0.280 \\
+White &               Neural Net &        Smogn &       Standard &              -0.0500 &         54.80 &             0.280 \\
+White & Random Forest Regression &          NaN &            NaN &               0.0100 &         68.80 &             0.430 \\
+White & Random Forest Regression &        Smogn &            NaN &               0.0700 &         64.10 &             0.480 \\
+\bottomrule
+\end{tabular}

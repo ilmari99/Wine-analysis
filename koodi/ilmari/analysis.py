@@ -29,14 +29,23 @@ def create_correlation_heatmap(df,show=True,wine="red"):
 
 def create_pair_plot(df,show = True, save="", categ_quality = False, wine = "red", pairplot_kwargs={}):
     if categ_quality:
-        df["quality2"] = df["quality"].apply(lambda x : (x > 4) + (x >  6))
+        def make_categ(q):
+            if q <= 4:
+                return "Bad"
+            if q <=6:
+                return "Medium"
+            else:
+                return "Good"
+        df["bad-medium-good"] = df["quality"].apply(make_categ)
         print(df.head())
     if wine == "red":
         pops = RW_POPS#["fixed acidity","citric acid","density"]#["residual sugar","citric acid", "fixed acidity", "density","free sulfur dioxide"]
     elif wine == "white":
         pops = WW_POPS
     [df.pop(k) for k in pops]
-    pg = sb.pairplot(df,hue="quality2",palette=sb.color_palette("tab10",3),**pairplot_kwargs)
+    sb.set(font_scale=1.2)
+    pg = sb.pairplot(df,hue="bad-medium-good",palette=sb.color_palette("tab10",3),corner=True,**pairplot_kwargs)
+    pg.map_upper(sb.kdeplot,levels=3,color="1")
     #pg = sb.PairGrid(df,hue="quality2")
     #pg.map_upper(sb.scatterplot)
     #pg.map_lower(sb.kdeplot)
@@ -81,9 +90,29 @@ def fit_linmodel(df,wine="red",pops = "default"):
     
 if __name__ == "__main__":
     #create_correlation_heatmap(WW_DATA)
-    #WW_DATA = apply_smogn(WW_DATA)
+    RW_DATA = apply_smogn(RW_DATA)
     #create_correlation_heatmap(WW_DATA,wine="white")
-    #create_pair_plot(RW_DATA,wine="red",categ_quality=True,save="red-wine-pairplot.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
+    create_pair_plot(RW_DATA,wine="red",categ_quality=True,save="red-wine-smogn-pairplot2.png",pairplot_kwargs={"diag_kind":"kde",})#"diag_kind":"quality"})
+    exit()
     #RW_DATA = max_norm(RW_DATA,inplace=False)
     #print(WW_DATA.describe())
-    fit_linmodel(RW_DATA,wine="red",pops="default")
+    #fit_linmodel(WW_DATA,wine="white",pops=[])
+    
+    #preds = pd.read_excel("tulokset/ilmari/predictions.xlsx")
+    #preds.pop("Other")
+    #preds.applymap(lambda x : round(x,2) if isinstance(x,float) else x)
+    #preds.to_latex("preds-in-latex.tex",index=False)
+
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=2)
+    y = RW_DATA.pop("quality")
+    rwpca = pca.fit(RW_DATA)
+    trans_pca = pca.transform(RW_DATA)
+    df_pca = pd.DataFrame(trans_pca)
+    print(df_pca)
+    plt.scatter(df_pca[0], df_pca[1])
+    plt.figure()
+    plt.scatter(df_pca[0],y)
+    plt.figure()
+    plt.scatter(df_pca[1],y)
+    plt.show()
