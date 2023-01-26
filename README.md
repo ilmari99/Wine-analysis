@@ -1,27 +1,20 @@
-# Late-tyokurssi
+# Scool project: Predicting wine quality
 
-## Viinien karakteristiikkojen vaikutus makuun?
+This was a school project done in a group of three.
 
-## Käytänteet
-- Luodaan lähtökohtaisesti omat kansiot henkilöittäin. Esim. koodi/Arno tai tulokset/Santeri
-- 
+The goal was to assess the effect of different chemical properties on the perceived quality of a wine, based on a dataset from the UCI Machine Learning Repository. [Portuguese Vinho Verde Wine Data Set](https://archive.ics.uci.edu/ml/datasets/wine+quality).
 
-## Githubin käyttö
-Kopioi tämä koko kansio:  
-`git clone https://github.com/ilmari99/Late-tyokurssi.git`
+My part of the project was creating a model that predicts the quality of a wine based on its chemical properties. We also did linear regression analysis and ordinal logistic regression analysis.
 
-### Muutosten tekeminen
+The data was highly imbalanced, so I used a SMOGN algorithm to balance the data. I then compared the performance of different regression models, such as linear regression, random forest, and neural networks on both a balanced and an imbalanced dataset.
 
-Hanki viimeisin versio kansiosta. Jos tätä ei tee, niin saattaa tulla virheitä siinä vaiheessa
-kun yritämme liittää muutoksia yhteen. Siirry kansioon, ja tee:  
-`git pull origin main`
+The models were compared on both accuracy (rounding the predicted quality to the nearest integer) and on an f1-score with a macro average.
 
-Tee muutoksia.
+The best models, for both accuracy and f1-score were random forests, with a better f1 score achieved with a balanced dataset, and a better accuracy achieved with an imbalanced dataset.
 
-Lisää yksittäinen muutos näin:  
-`git add tiedosto/jota/muutit`  
-`git commit -m "Mitä tiedostosta on muutettu"`
+The best models achieved an accuracy of 69.2 %, an f1-score of 0.48 and a Mean Absolute Error of 0.01.
 
-Lisää kaikki muutokset viimeisimpään versioon. Tämän jälkeen muut henkilöt saavat tekemäsi muutokset tuolla `git pull origin main` komennolla. Lisää siis omat muutoksesi versioon:  
-`git push origin main`
+Best predictors for the quality of a wine were the alcohol content and the amount of sulphates.
+
+The report is in Finnish, at `report.pdf`.
 
